@@ -4,7 +4,7 @@
 //!
 //! [examples/i2c_scanner.rs]: https://github.com/stm32-rs/stm32f3xx-hal/blob/v0.6.0/examples/i2c_scanner.rs
 
-use core::convert::TryFrom;
+use core::convert::{TryFrom, TryInto};
 use core::ops::Deref;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     hal::blocking::i2c::{Read, Write, WriteRead},
     pac::{i2c1::RegisterBlock, rcc::cfgr3::I2C1SW_A, I2C1, RCC},
     rcc::{Clocks, APB1},
-    time::{Hertz, U32Ext},
+    time::rate::{Hertz, Rate},
 };
 
 #[cfg(not(feature = "gpio-f333"))]
@@ -111,14 +111,20 @@ macro_rules! busy_wait {
 
 impl<I2C, SCL, SDA> I2c<I2C, (SCL, SDA)> {
     /// Configures the I2C peripheral to work in master mode
-    pub fn new<F>(i2c: I2C, pins: (SCL, SDA), freq: F, clocks: Clocks, apb1: &mut APB1) -> Self
+    pub fn new<F>(
+        i2c: I2C,
+        pins: (SCL, SDA),
+        freq: F,
+        clocks: Clocks,
+        apb1: &mut APB1,
+    ) -> Result<Self, <F as TryInto<Hertz<u32>>>::Error>
     where
         I2C: Instance,
         SCL: SclPin<I2C>,
         SDA: SdaPin<I2C>,
-        F: Into<Hertz>,
+        F: Rate + TryInto<Hertz<u32>>,
     {
-        let freq = freq.into().0;
+        let freq = (freq.try_into()? as Hertz).0;
 
         crate::assert!(freq <= 1_000_000);
 
@@ -195,7 +201,7 @@ impl<I2C, SCL, SDA> I2c<I2C, (SCL, SDA)> {
         // Enable the peripheral
         i2c.cr1.modify(|_, w| w.pe().set_bit());
 
-        Self { i2c, pins }
+        Ok(Self { i2c, pins })
     }
 
     /// Releases the I2C peripheral and associated pins
@@ -451,7 +457,7 @@ macro_rules! i2c {
                 fn clock(clocks: &Clocks) -> Hertz {
                     // NOTE(unsafe) atomic read with no side effects
                     match unsafe { (*RCC::ptr()).cfgr3.read().$i2cXsw().variant() } {
-                        I2C1SW_A::HSI => 8.mhz().into(),
+                        I2C1SW_A::HSI => Hertz(8_000_000),
                         I2C1SW_A::SYSCLK => clocks.sysclk(),
                     }
                 }

@@ -160,7 +160,7 @@ use crate::{
     hal::PwmPin,
     pac::{RCC, TIM15, TIM16, TIM17, TIM2},
     rcc::Clocks,
-    time::Hertz,
+    time::rate::Hertz,
 };
 use core::marker::PhantomData;
 

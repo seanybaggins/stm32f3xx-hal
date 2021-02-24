@@ -5,8 +5,9 @@ use crate::{
     hal::{blocking, serial},
     pac::{USART1, USART2, USART3},
     rcc::{Clocks, APB1, APB2},
-    time::Bps,
+    time::rate::Baud,
 };
+
 use cfg_if::cfg_if;
 use core::{convert::Infallible, marker::PhantomData, ptr};
 
@@ -111,7 +112,7 @@ macro_rules! hal {
                 pub fn $usartX(
                     usart: $USARTX,
                     pins: (TX, RX),
-                    baud_rate: Bps,
+                    baud_rate: Baud,
                     clocks: Clocks,
                     apb: &mut $APB,
                 ) -> Self

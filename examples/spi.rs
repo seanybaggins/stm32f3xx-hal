@@ -13,6 +13,7 @@ use cortex_m_rt::entry;
 use hal::pac;
 use hal::prelude::*;
 use hal::spi::{Mode, Phase, Polarity, Spi};
+use hal::time::rate::*;
 
 #[entry]
 fn main() -> ! {
@@ -24,9 +25,12 @@ fn main() -> ! {
 
     let clocks = rcc
         .cfgr
-        .use_hse(8.mhz())
-        .sysclk(48.mhz())
-        .pclk1(24.mhz())
+        .use_hse(8u32.MHz())
+        .unwrap()
+        .sysclk(48u32.MHz())
+        .unwrap()
+        .pclk1(24u32.MHz())
+        .unwrap()
         .freeze(&mut flash.acr);
 
     // Configure pins for SPI
@@ -43,10 +47,11 @@ fn main() -> ! {
         dp.SPI1,
         (sck, miso, mosi),
         spi_mode,
-        3.mhz(),
+        3u32.MHz(),
         clocks,
         &mut rcc.apb2,
-    );
+    )
+    .unwrap();
 
     // Create an `u8` array, which can be transfered via SPI.
     let msg_send: [u8; 8] = [0xD, 0xE, 0xA, 0xD, 0xB, 0xE, 0xE, 0xF];
